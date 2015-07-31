@@ -27,6 +27,10 @@ func (photo Photo) HasLikes() bool {
 	return photo.Likes.Count > 0
 }
 
+func (photo Photo) LikesCount() int {
+	return photo.Likes.Count
+}
+
 func (api *VkApi) GetPhotos(album Album) ([]Photo, error) {
 	var photos []Photo
 
