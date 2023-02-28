@@ -1,34 +1,56 @@
 package vk
+
 import (
+	"fmt"
+	"io"
+	"log"
 	"net/http/cookiejar"
 	"net/url"
-	"golang.org/x/net/publicsuffix"
+	"os"
 	"strings"
-	"fmt"
-	"log"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 func (api *VkApi) login() error {
-	url_login, err := url.Parse(URL_LOGIN)
-	if err != nil {return newError("Can't parse URL")}
+	urlLogin, err := url.Parse(URL_LOGIN)
+	if err != nil {
+		return newError("Can't parse URL")
+	}
 
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {return newError("Can't create cookies")}
+	if err != nil {
+		return newError("Can't create cookies")
+	}
 	api._client.Jar = jar
 
 	var values = url.Values{}
 
 	values.Set("act", "login")
-	values.Set("utf8", "1")
+	values.Set("to", "")
+	values.Set("expire", "")
+	values.Set("_origin", "https://vk.com")
+	values.Set("ip_h", "https://vk.com")
+	values.Set("lg_h", "https://vk.com")
 	values.Set("email", api.Login)
 	values.Set("pass", api.password)
 
-	response, err := api._client.PostForm(url_login.String(), values)
-	if err != nil {return newError(err.Error())}
+	response, err := api._client.PostForm(urlLogin.String(), values)
+	if err != nil {
+		return newError(err.Error())
+	}
 
 	endUrl := response.Request.URL.String()
+	log.Printf("endUrl: %s", endUrl)
+	defer response.Body.Close()
+	out, err := os.Create("filename.ext")
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	io.Copy(out, response.Body)
 
-	var cookies = api._client.CookieMap(url_login)
+	var cookies = api._client.CookieMap(urlLogin)
 
 	for k, v := range cookies {
 		log.Printf("%s => %s\n", k, v)
@@ -50,7 +72,7 @@ func (api *VkApi) login() error {
 		return newAuthError("Authorization error (capcha)")
 	} else if strings.Contains(endUrl, "m=") {
 		return newAuthError("Bad password")
-	} else {
-		return newAuthError(fmt.Sprintf("Unknown error (%s)", endUrl))
 	}
+
+	return newAuthError(fmt.Sprintf("Unknown error (%s)", endUrl))
 }

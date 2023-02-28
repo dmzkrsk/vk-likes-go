@@ -1,4 +1,5 @@
 package vk
+
 import (
 	"net/http"
 	"net/url"
@@ -10,14 +11,14 @@ func (e VkError) String() string {
 	return e.message
 }
 
-const VERSION string = "5.33"
-const URL_LOGIN string = `https://login.vk.com/`
+const VERSION string = "5.53"
+const URL_LOGIN string = `https://login.vk.com`
 const URL_API string = `https://api.vk.com/method/`
 const API_VERSION string = `5.33`
 const DEFAULT_PHOTO_COUNT int = 500
 
 type VkApi struct {
-	Login string
+	Login    string
 	password string
 
 	scope string
@@ -28,7 +29,7 @@ type VkApi struct {
 
 	_throttle <-chan time.Time
 
-	_sid string
+	_sid     string
 	_login_p string
 	_login_l string
 }
@@ -43,15 +44,21 @@ func NewApi(login string, password string, scope string) *VkApi {
 }
 
 func (api *VkApi) Auth() error {
-	if api.Login == "" {return newError("No login provided")}
-	if api.password == "" {return newError("No password provided")}
+	if api.Login == "" {
+		return newError("No login provided")
+	}
+	if api.password == "" {
+		return newError("No password provided")
+	}
 
 	return api.login()
 }
 
 func (api *VkApi) method(result interface{}, method string, parameters url.Values, auth bool) error {
 	url, err := url.Parse(URL_API)
-	if err != nil {return newError("Can't parse URL")}
+	if err != nil {
+		return newError("Can't parse URL")
+	}
 
 	url.Path = path.Join(url.Path, method)
 	parameters.Set("v", API_VERSION)
@@ -59,11 +66,13 @@ func (api *VkApi) method(result interface{}, method string, parameters url.Value
 	parameters.Set("https", "0")
 	url.RawQuery = parameters.Encode()
 
-//	log.Println(url.String())
+	//	log.Println(url.String())
 
-	<- api._throttle
+	<-api._throttle
 	err = api._client.GetJson(url.String(), &result)
-	if err != nil {return newError(err.Error())}
+	if err != nil {
+		return newError(err.Error())
+	}
 
 	return nil
 }
